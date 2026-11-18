@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyFumetrix — Air Quality Guard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --panel:rgba(24,29,31,.72);
+    --panel-raised:rgba(34,41,43,.78);
+    --line:rgba(255,255,255,.09);
+    --ink:#ECF1F1;
+    --ink-dim:#9AABAD;
+    --ink-faint:#67787A;
+    --safe:#3FC463;
+    --safe-glow:rgba(63,196,99,.14);
+    --caution:#F2B705;
+    --caution-glow:rgba(242,183,5,.14);
+    --unsafe:#EA4B36;
+    --unsafe-glow:rgba(234,75,54,.17);
+    --info:#C9834A;
+    --font-disp:'Orbitron',sans-serif;
+    --font-body:'Space Mono',monospace;
+    --font-mono:'Space Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  body{
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.4;
+    -webkit-font-smoothing:antialiased;
+    background:#0B0D0E;
+    background-image:
+      linear-gradient(180deg, rgba(9,11,12,.90) 0%, rgba(10,13,14,.94) 45%, rgba(8,10,11,.97) 100%),
+      url('https://images.unsplash.com/photo-1518770660439-4636190af475?fm=jpg&q=70&w=2200&auto=format&fit=crop');
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
+  }
+  ::selection{background:var(--info);color:#04121C;}
+  a{color:var(--info);}
+
+  .wrap{max-width:1240px;margin:0 auto;padding:18px 20px 50px;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    padding-bottom:14px;margin-bottom:16px;border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:13px;}
+  .brand-mark{
+    width:46px;height:46px;border-radius:12px;flex-shrink:0;
+    background:linear-gradient(155deg,#2E3A3C,#171C1D);
+    border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px rgba(201,131,74,.10), 0 4px 16px rgba(0,0,0,.35);
+  }
+  .brand-mark svg{width:24px;height:24px;}
+  .brand-name{
+    font-family:var(--font-disp);font-weight:700;font-size:27px;letter-spacing:.02em;
+    line-height:1.1;background:linear-gradient(90deg,#F4EDE6,#C9834A);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .brand-sub{font-size:12.5px;color:var(--ink-dim);margin-top:1px;letter-spacing:.01em;}
+
+  .top-right{display:flex;align-items:center;gap:12px;}
+  .status-chip{
+    font-family:var(--font-mono);font-size:11.5px;display:flex;align-items:center;gap:6px;
+    background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 11px;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--ink-faint);flex-shrink:0;}
+  .dot.on{background:var(--safe);box-shadow:0 0 0 3px var(--safe-glow);}
+  .dot.off{background:var(--unsafe);box-shadow:0 0 0 3px var(--unsafe-glow);}
+
+  .icon-btn{
+    width:36px;height:36px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:border-color .15s, background .15s;flex-shrink:0;
+  }
+  .icon-btn:hover{border-color:#5b6a6c;background:var(--panel-raised);}
+  .icon-btn svg{width:17px;height:17px;}
+
+  button{
+    font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;
+    border-radius:8px;border:1px solid var(--line);background:var(--panel-raised);color:var(--ink);
+    padding:8px 14px;transition:border-color .15s, background .15s;
+  }
+  button:hover{border-color:#5b6a6c;}
+  button:active{transform:translateY(1px);}
+  button.primary{background:var(--info);border-color:var(--info);color:#04121D;}
+  button.primary:hover{background:#DC9A62;}
+  button.ghost{background:transparent;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  input[type=text]{
+    font-family:var(--font-mono);font-size:13px;color:var(--ink);
+    background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%;
+  }
+  input[type=text]:focus{outline:none;border-color:var(--info);}
+  label.small{font-size:11.5px;color:var(--ink-dim);display:block;margin-bottom:5px;}
+
+  /* ---------- Tier banner ---------- */
+  .tier-banner{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:15px 20px;border-radius:12px;margin-bottom:16px;border:1px solid var(--line);
+    background:var(--panel);backdrop-filter:blur(10px);transition:background .4s,border-color .4s;
+  }
+  .tier-banner.safe{background:var(--safe-glow);border-color:rgba(63,196,99,.35);}
+  .tier-banner.caution{background:var(--caution-glow);border-color:rgba(242,183,5,.35);}
+  .tier-banner.unsafe{background:var(--unsafe-glow);border-color:rgba(234,75,54,.4);}
+  .tier-left{display:flex;align-items:center;gap:13px;}
+  .tier-icon{
+    width:40px;height:40px;border-radius:10px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.07);
+  }
+  .tier-icon svg{width:21px;height:21px;}
+  .tier-value{font-family:var(--font-mono);font-size:21px;font-weight:700;letter-spacing:.01em;text-transform:uppercase;}
+  .tier-reason{font-size:12.5px;color:var(--ink-dim);margin-top:2px;max-width:460px;}
+  .tier-right{display:flex;gap:22px;flex-wrap:wrap;}
+  .tier-stat{text-align:right;}
+  .tier-stat .n{font-family:var(--font-mono);font-size:18px;font-weight:600;}
+  .tier-stat .l{font-size:11px;color:var(--ink-dim);}
+
+  /* ---------- Layout ---------- */
+  .layout{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;}
+  @media (max-width:980px){.layout{grid-template-columns:1fr;}}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:15px 17px;margin-bottom:16px;backdrop-filter:blur(10px);
+  }
+  .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;flex-wrap:wrap;gap:6px;}
+  .panel-title{font-family:var(--font-mono);font-size:13px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;}
+  .panel-sub{font-size:11px;color:var(--ink-dim);}
+
+  /* ---------- Sensor cards (compact) ---------- */
+  .sensor-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  @media (max-width:760px){.sensor-grid{grid-template-columns:repeat(2,1fr);}}
+  .sensor-card{
+    background:var(--panel-raised);border:1px solid var(--line);border-radius:10px;
+    padding:11px 12px;
+  }
+  .sensor-card .tag{font-size:10.5px;color:var(--ink-dim);display:flex;justify-content:space-between;align-items:center;letter-spacing:.02em;}
+  .sensor-card .sensor-status{width:6px;height:6px;border-radius:50%;background:var(--safe);flex-shrink:0;}
+  .sensor-card .sensor-status.warn{background:var(--caution);}
+  .sensor-card .sensor-status.bad{background:var(--unsafe);}
+  .sensor-card .val{font-family:var(--font-mono);font-size:22px;font-weight:600;margin-top:4px;display:flex;align-items:baseline;gap:4px;}
+  .sensor-card .val .unit{font-size:11.5px;color:var(--ink-dim);font-weight:400;}
+  .spark{width:100%;height:24px;margin-top:6px;display:block;}
+
+  /* ---------- Chart ---------- */
+  .chart-legend{display:flex;gap:14px;font-size:11.5px;color:var(--ink-dim);}
+  .chart-legend span{display:flex;align-items:center;gap:5px;}
+  .chart-legend .sw{width:9px;height:3px;border-radius:2px;display:inline-block;}
+  canvas#mainChart{width:100%;height:190px;display:block;}
+
+  /* ---------- Extraction verification (compact inline) ---------- */
+  .verify-inline{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+  .verify-metric{}
+  .verify-metric .l{font-size:11px;color:var(--ink-dim);}
+  .verify-metric .v{font-family:var(--font-mono);font-size:17px;font-weight:600;margin-top:2px;}
+  .verdict-strip{
+    margin-top:12px;padding:9px 13px;border-radius:8px;display:flex;align-items:center;gap:9px;
+    font-size:12.5px;border:1px solid var(--line);
+  }
+  .verdict-strip.ok{background:var(--safe-glow);color:var(--safe);border-color:rgba(63,196,99,.3);}
+  .verdict-strip.fault{background:var(--unsafe-glow);color:var(--unsafe);border-color:rgba(234,75,54,.4);}
+
+  /* ---------- Session log ---------- */
+  .exposure-summary{display:flex;gap:20px;margin:2px 0 8px;flex-wrap:wrap;}
+  .exposure-summary .item .n{font-family:var(--font-mono);font-size:19px;font-weight:600;}
+  .exposure-summary .item .l{font-size:10.5px;color:var(--ink-dim);}
+  table.log-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
+  table.log-table th{text-align:left;color:var(--ink-dim);font-weight:600;font-size:10.5px;padding:5px 7px;border-bottom:1px solid var(--line);}
+  table.log-table td{padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--font-mono);color:var(--ink);}
+  table.log-table tr:hover td{background:rgba(255,255,255,.02);}
+  .tier-chip{padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:600;font-family:var(--font-body);}
+  .tier-chip.SAFE{background:var(--safe-glow);color:var(--safe);}
+  .tier-chip.CAUTION{background:var(--caution-glow);color:var(--caution);}
+  .tier-chip.UNSAFE{background:var(--unsafe-glow);color:var(--unsafe);}
+  .log-empty{color:var(--ink-faint);font-size:12.5px;padding:16px 4px;text-align:center;}
+  .log-scroll{max-height:210px;overflow-y:auto;}
+
+  /* ---------- Settings modal ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(4,5,6,.6);backdrop-filter:blur(3px);
+    display:none;align-items:flex-start;justify-content:center;padding:60px 16px;z-index:50;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:#191F21;border:1px solid var(--line);border-radius:14px;
+    width:100%;max-width:440px;padding:20px 22px 22px;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+    max-height:82vh;overflow-y:auto;
+  }
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .modal-title{font-family:var(--font-mono);font-size:15px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;}
+  .modal-close{background:transparent;border:none;color:var(--ink-dim);font-size:20px;padding:2px 6px;line-height:1;}
+  .modal-section{margin-bottom:18px;}
+  .modal-section:last-child{margin-bottom:0;}
+  .modal-section-title{font-size:12px;font-weight:600;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;}
+
+  .mode-toggle{display:flex;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:8px;padding:3px;}
+  .mode-toggle button{flex:1;background:transparent;border:none;border-radius:6px;padding:7px 8px;font-size:12.5px;}
+  .mode-toggle button.active{background:var(--panel-raised);border:1px solid var(--line);}
+
+  .field-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .field-row input{flex:1;min-width:120px;}
+  .hint{font-size:11.5px;color:var(--ink-faint);margin-top:8px;line-height:1.5;}
+
+  .conn-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);gap:10px;}
+  .conn-row:last-child{border-bottom:none;padding-bottom:0;}
+  .conn-name{font-size:13px;font-weight:600;}
+  .conn-sub{font-size:11px;color:var(--ink-dim);margin-top:1px;font-family:var(--font-mono);}
+  .conn-badge{font-family:var(--font-mono);font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+  .conn-badge.online{background:var(--safe-glow);color:var(--safe);}
+  .conn-badge.offline{background:var(--unsafe-glow);color:var(--unsafe);}
+
+  footer{text-align:center;color:var(--ink-faint);font-size:11.5px;margin-top:22px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 20c0-5 3-6 3-10a3 3 0 1 1 6 0c0 4 3 5 3 10" stroke="#9AABAD" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="10" r="1.4" fill="#C9834A"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">MyFumetrix</div>
+        <div class="brand-sub">Workstation Air Quality Guard</div>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="status-chip"><span class="dot" id="sessionDot"></span><span id="sessionPillText">Idle</span></div>
+      <button class="icon-btn" id="btnSettings" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="#ECF1F1" stroke-width="1.7"/><path d="M19.4 13.5c.04-.33.06-.66.06-1s-.02-.67-.06-1l2.02-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.38.96c-.5-.38-1.04-.7-1.63-.94l-.36-2.53a.5.5 0 0 0-.5-.43h-3.84a.5.5 0 0 0-.5.43l-.36 2.53c-.59.24-1.13.56-1.63.94l-2.38-.96a.5.5 0 0 0-.6.22L2.46 9.28a.5.5 0 0 0 .12.64L4.6 11.5c-.04.33-.06.66-.06 1s.02.67.06 1l-2.02 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.31.6.22l2.38-.96c.5.38 1.04.7 1.63.94l.36 2.53c.05.25.26.43.5.43h3.84c.24 0 .45-.18.5-.43l.36-2.53c.59-.24 1.13-.56 1.63-.94l2.38.96c.21.09.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64L19.4 13.5z" stroke="#ECF1F1" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- TIER BANNER -->
+  <div class="tier-banner safe" id="tierBanner">
+    <div class="tier-left">
+      <div class="tier-icon" id="tierIcon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 12l5 5L20 6" stroke="#3FC463" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div class="tier-value" id="tierValue">SAFE</div>
+        <div class="tier-reason" id="tierReason">Air quality is within normal range.</div>
+      </div>
+    </div>
+    <div class="tier-right">
+      <div class="tier-stat"><div class="n" id="statPM">--</div><div class="l">PM2.5</div></div>
+      <div class="tier-stat"><div class="n" id="statVOC">--</div><div class="l">VOC</div></div>
+      <div class="tier-stat"><div class="n" id="statFan">--</div><div class="l">Fan RPM</div></div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- MAIN COLUMN -->
+    <div>
+      <!-- SENSOR CARDS -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Live sensors</div>
+        </div>
+        <div class="sensor-grid">
+          <div class="sensor-card">
+            <div class="tag"><span>PM2.5</span><span class="sensor-status" id="dotPM"></span></div>
+            <div class="val" id="valPM">--<span class="unit">µg/m³</span></div>
+            <canvas class="spark" id="sparkPM"></canvas>
+          </div>
+          <div class="sensor-card">
+            <div class="tag"><span>VOC</span><span class="sensor-status" id="dotVOC"></span></div>
+            <div class="val" id="valVOC">--<span class="unit">idx</span></div>
+            <canvas class="spark" id="sparkVOC"></canvas>
+          </div>
+          <div class="sensor-card">
+            <div class="tag"><span>Temp</span><span class="sensor-status" id="dotTEMP"></span></div>
+            <div class="val" id="valTEMP">--<span class="unit">°C</span></div>
+            <canvas class="spark" id="sparkTEMP"></canvas>
+          </div>
+          <div class="sensor-card">
+            <div class="tag"><span>Airflow</span><span class="sensor-status" id="dotFAN"></span></div>
+            <div class="val" id="valFAN">--<span class="unit">RPM</span></div>
+            <canvas class="spark" id="sparkFAN"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHART -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Fume trend</div>
+          <div class="chart-legend">
+            <span><i class="sw" style="background:#C9834A"></i>PM2.5</span>
+            <span><i class="sw" style="background:#F2B705"></i>VOC</span>
+          </div>
+        </div>
+        <canvas id="mainChart"></canvas>
+      </div>
+
+      <!-- EXTRACTION VERIFICATION -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Extraction verification</div>
+        </div>
+        <div class="verify-inline">
+          <div class="verify-metric"><div class="l">Expected</div><div class="v" id="expectedFlow">-- RPM</div></div>
+          <div class="verify-metric"><div class="l">Measured</div><div class="v" id="measuredFlow">-- RPM</div></div>
+        </div>
+        <div class="verdict-strip ok" id="verifyVerdict">Extractor is pulling air as expected.</div>
+      </div>
+
+    </div>
+
+    <!-- SIDEBAR -->
+    <div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Session exposure log</div>
+        </div>
+        <div class="exposure-summary">
+          <div class="item"><div class="n" id="sumDuration">00:00:00</div><div class="l">Duration</div></div>
+          <div class="item"><div class="n" id="sumTWA">0.0</div><div class="l">TWA PM2.5</div></div>
+          <div class="item"><div class="n" id="sumCaution">0</div><div class="l">Caution</div></div>
+          <div class="item"><div class="n" id="sumUnsafe">0</div><div class="l">Unsafe</div></div>
+        </div>
+        <button class="ghost" id="btnExport" disabled style="width:100%;margin:10px 0 2px;">Export CSV</button>
+        <div class="log-scroll">
+          <table class="log-table" id="logTable">
+            <thead><tr><th>Time</th><th>Tier</th><th>PM2.5</th></tr></thead>
+            <tbody id="logBody"></tbody>
+          </table>
+          <div class="log-empty" id="logEmpty">Logging starts automatically once the device comes online.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>MyFumetrix · CpE‑414 Embedded Systems</footer>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Settings</div>
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Data source</div>
+      <div class="mode-toggle">
+        <button id="modeDemo" class="active">Demo simulation</button>
+        <button id="modeLive">Live hardware</button>
+      </div>
+      <div id="liveFields" style="display:none;">
+        <div class="field-row">
+          <div style="flex:1;">
+            <label class="small">ESP‑01 IP address</label>
+            <input type="text" id="espIp" placeholder="192.168.1.45">
+          </div>
+        </div>
+        <div class="field-row">
+          <button class="primary" id="btnConnect" style="flex:1;">Connect</button>
+          <button class="ghost" id="btnDisconnect" style="display:none;">Disconnect</button>
+        </div>
+        <div class="hint">Polls <code>http://&lt;ip&gt;/data</code> every 2 s. CORS must be enabled on the ESP‑01 (see esp01_gateway.ino).</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Live status</div>
+      <div class="conn-row">
+        <div><div class="conn-name">ESP‑01 gateway</div><div class="conn-sub" id="espSub2">demo mode</div></div>
+        <div class="conn-badge offline" id="badgeEsp2">offline</div>
+      </div>
+      <div class="conn-row">
+        <div><div class="conn-name">DIY Arduino node</div><div class="conn-sub" id="arduinoSub2">demo mode</div></div>
+        <div class="conn-badge offline" id="badgeArduino2">offline</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Sensor suite &amp; thresholds</div>
+      <table class="log-table">
+        <thead><tr><th>Tier</th><th>PM2.5</th><th>VOC</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tier-chip SAFE">SAFE</span></td><td>&lt; 35</td><td>&lt; 150</td></tr>
+          <tr><td><span class="tier-chip CAUTION">CAUTION</span></td><td>35–75</td><td>150–300</td></tr>
+          <tr><td><span class="tier-chip UNSAFE">UNSAFE</span></td><td>&gt; 75</td><td>&gt; 300</td></tr>
+        </tbody>
+      </table>
+      <div class="hint">PMS7003 (PM2.5) · SGP30/MQ135 (VOC) · DHT22 (temp) · tachometer (airflow). Alerts cross-check fume spikes against heat and airflow before escalating.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============ STATE ============ */
+  const state = {
+    mode: 'demo', espIp: '', connected: false, arduinoOk: false, rssi: null, uptime: 0,
+    history: { pm: [], voc: [], temp: [], fan: [], t: [] }, maxPoints: 90,
+    session: { active:false, startTime:null, samples:[], twaSum:0, twaN:0, cautionCount:0, unsafeCount:0 },
+    pollTimer: null, lastTier: 'SAFE', fanBaselineRpm: 2400,
+  };
+
+  const $ = id => document.getElementById(id);
+  const el = {
+    sessionDot: $('sessionDot'), sessionPillText: $('sessionPillText'),
+    tierBanner: $('tierBanner'), tierValue: $('tierValue'), tierReason: $('tierReason'), tierIcon: $('tierIcon'),
+    statPM: $('statPM'), statVOC: $('statVOC'), statFan: $('statFan'),
+    valPM: $('valPM'), valVOC: $('valVOC'), valTEMP: $('valTEMP'), valFAN: $('valFAN'),
+    dotPM: $('dotPM'), dotVOC: $('dotVOC'), dotTEMP: $('dotTEMP'), dotFAN: $('dotFAN'),
+    sparkPM: $('sparkPM'), sparkVOC: $('sparkVOC'), sparkTEMP: $('sparkTEMP'), sparkFAN: $('sparkFAN'),
+    mainChart: $('mainChart'),
+    expectedFlow: $('expectedFlow'), measuredFlow: $('measuredFlow'), verifyVerdict: $('verifyVerdict'),
+    btnExport: $('btnExport'),
+    sumDuration: $('sumDuration'), sumTWA: $('sumTWA'), sumCaution: $('sumCaution'), sumUnsafe: $('sumUnsafe'),
+    logBody: $('logBody'), logEmpty: $('logEmpty'),
+    badgeEsp2: $('badgeEsp2'), badgeArduino2: $('badgeArduino2'), espSub2: $('espSub2'), arduinoSub2: $('arduinoSub2'),
+    modeDemo: $('modeDemo'), modeLive: $('modeLive'), liveFields: $('liveFields'),
+    espIpInput: $('espIp'), btnConnect: $('btnConnect'), btnDisconnect: $('btnDisconnect'),
+    btnSettings: $('btnSettings'), modalBackdrop: $('modalBackdrop'), modalClose: $('modalClose'),
+  };
+
+  /* ============ SETTINGS MODAL ============ */
+  el.btnSettings.addEventListener('click', () => el.modalBackdrop.classList.add('open'));
+  el.modalClose.addEventListener('click', () => el.modalBackdrop.classList.remove('open'));
+  el.modalBackdrop.addEventListener('click', (e) => { if(e.target === el.modalBackdrop) el.modalBackdrop.classList.remove('open'); });
+
+  /* ============ MODE SWITCHING ============ */
+  el.modeDemo.addEventListener('click', () => setMode('demo'));
+  el.modeLive.addEventListener('click', () => setMode('live'));
+
+  function setMode(mode){
+    state.mode = mode;
+    el.modeDemo.classList.toggle('active', mode==='demo');
+    el.modeLive.classList.toggle('active', mode==='live');
+    el.liveFields.style.display = mode==='live' ? 'block' : 'none';
+    stopPolling();
+    if(mode==='demo'){
+      state.connected = true; state.arduinoOk = true;
+      updateConnBadges();
+      startPolling(demoTick, 2000);
+    } else {
+      state.connected = false; state.arduinoOk = false;
+      resetReadings();
+      updateConnBadges();
+    }
+  }
+
+  function resetReadings(){
+    // wipe history so the chart/sparklines go blank rather than showing stale demo data
+    state.history = { pm: [], voc: [], temp: [], fan: [], t: [] };
+    demoPhase = 0;
+
+    el.valPM.innerHTML = '--<span class="unit">µg/m³</span>';
+    el.valVOC.innerHTML = '--<span class="unit">idx</span>';
+    el.valTEMP.innerHTML = '--<span class="unit">°C</span>';
+    el.valFAN.innerHTML = '--<span class="unit">RPM</span>';
+    el.statPM.textContent = '--'; el.statVOC.textContent = '--'; el.statFan.textContent = '--';
+
+    [el.dotPM, el.dotVOC, el.dotTEMP, el.dotFAN].forEach(d => d.className = 'sensor-status');
+    [el.sparkPM, el.sparkVOC, el.sparkTEMP, el.sparkFAN].forEach(c => {
+      const ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+    });
+    const mainCtx = el.mainChart.getContext('2d');
+    mainCtx.clearRect(0,0,el.mainChart.width, el.mainChart.height);
+
+    el.expectedFlow.textContent = '-- RPM'; el.measuredFlow.textContent = '-- RPM';
+    el.verifyVerdict.className = 'verdict-strip ok';
+    el.verifyVerdict.textContent = 'Waiting for a connection to verify extraction.';
+
+    setTier('SAFE', 'Waiting for hardware connection…');
+    el.tierBanner.className = 'tier-banner';
+    el.tierValue.textContent = '—';
+
+    // pause session logging until real data starts arriving
+    state.session.active = false;
+    el.sessionPillText.textContent = 'Offline';
+  }
+
+  el.btnConnect.addEventListener('click', () => {
+    const ip = el.espIpInput.value.trim();
+    if(!ip){ el.espIpInput.focus(); return; }
+    state.espIp = ip;
+    el.btnConnect.disabled = true; el.btnConnect.textContent = 'Connecting…';
+    stopPolling();
+    startPolling(liveTick, 2000);
+    el.btnDisconnect.style.display = 'inline-block';
+  });
+  el.btnDisconnect.addEventListener('click', () => {
+    stopPolling();
+    state.connected = false; state.arduinoOk = false;
+    resetReadings();
+    updateConnBadges();
+    el.btnConnect.disabled = false; el.btnConnect.textContent = 'Connect';
+    el.btnDisconnect.style.display = 'none';
+  });
+
+  function startPolling(fn, interval){ fn(); state.pollTimer = setInterval(fn, interval); }
+  function stopPolling(){ if(state.pollTimer){ clearInterval(state.pollTimer); state.pollTimer = null; } }
+
+  /* ============ LIVE HARDWARE POLL ============ */
+  async function liveTick(){
+    try{
+      const res = await fetch(`http://${state.espIp}/data`, { cache: 'no-store' });
+      if(!res.ok) throw new Error('bad response');
+      const data = await res.json();
+      state.connected = true;
+      state.arduinoOk = !!data.arduino_ok;
+      state.rssi = data.rssi ?? null;
+      state.uptime = data.uptime ?? 0;
+      el.btnConnect.disabled = false; el.btnConnect.textContent = 'Reconnect';
+      applyReading({ pm: data.pm25, voc: data.voc, temp: data.temp, fan: data.fan_rpm });
+    } catch(err){
+      state.connected = false; state.arduinoOk = false;
+      el.btnConnect.disabled = false; el.btnConnect.textContent = 'Retry connection';
+    }
+    updateConnBadges();
+  }
+
+  /* ============ DEMO SIMULATION ============ */
+  let demoPhase = 0;
+  function demoTick(){
+    demoPhase += 1;
+    const cycle = demoPhase % 45;
+    let pmBase, vocBase, tempBase, fanBase;
+    if(cycle < 12){ pmBase = 10; vocBase = 60; tempBase = 27; fanBase = 2350; }
+    else if(cycle < 28){ pmBase = 45 + (cycle-12)*2.2; vocBase = 180 + (cycle-12)*6; tempBase = 34; fanBase = 2300; }
+    else if(cycle < 36){ pmBase = 90; vocBase = 340; tempBase = 35; fanBase = 900; }
+    else { pmBase = Math.max(10, 90 - (cycle-36)*10); vocBase = Math.max(60, 340 - (cycle-36)*35); tempBase = 30; fanBase = 2300; }
+    const jitter = (n) => n + (Math.random()-0.5)*n*0.08;
+    state.connected = true; state.arduinoOk = true;
+    applyReading({
+      pm: Math.max(0, jitter(pmBase)), voc: Math.max(0, jitter(vocBase)),
+      temp: jitter(tempBase), fan: Math.max(0, jitter(fanBase))
+    });
+    updateConnBadges();
+  }
+
+  /* ============ CORE READING PIPELINE ============ */
+  function applyReading({pm, voc, temp, fan}){
+    pm = Number(pm)||0; voc = Number(voc)||0; temp = Number(temp)||0; fan = Number(fan)||0;
+    pushHistory(pm, voc, temp, fan);
+
+    el.valPM.innerHTML = pm.toFixed(1)+'<span class="unit">µg/m³</span>';
+    el.valVOC.innerHTML = voc.toFixed(0)+'<span class="unit">idx</span>';
+    el.valTEMP.innerHTML = temp.toFixed(1)+'<span class="unit">°C</span>';
+    el.valFAN.innerHTML = fan.toFixed(0)+'<span class="unit">RPM</span>';
+    el.statPM.textContent = pm.toFixed(1);
+    el.statVOC.textContent = voc.toFixed(0);
+    el.statFan.textContent = fan.toFixed(0);
+
+    setDot(el.dotPM, pm, 35, 75);
+    setDot(el.dotVOC, voc, 150, 300);
+    setDot(el.dotTEMP, temp, 45, 60);
+    setDot(el.dotFAN, 3000-fan, 1000, 2000);
+
+    const expected = Math.round(state.fanBaselineRpm - (voc*0.05));
+    el.expectedFlow.textContent = expected + ' RPM';
+    el.measuredFlow.textContent = Math.round(fan) + ' RPM';
+    const fanFault = fan < expected * 0.6;
+    el.verifyVerdict.className = 'verdict-strip ' + (fanFault ? 'fault' : 'ok');
+    el.verifyVerdict.textContent = fanFault
+      ? 'Extractor fault suspected — airflow is far below expected.'
+      : 'Extractor is pulling air as expected.';
+
+    const activeHeat = temp > 32;
+    let tier = 'SAFE', reason = 'Air quality is within normal range.';
+    if((pm > 75 || voc > 300)){
+      if(fanFault && activeHeat){ tier = 'UNSAFE'; reason = 'Elevated fumes during soldering, extractor not confirmed working.'; }
+      else if(activeHeat){ tier = 'UNSAFE'; reason = 'Particulate or VOC levels crossed the unsafe threshold.'; }
+      else { tier = 'CAUTION'; reason = 'Elevated readings without a confirmed heat source.'; }
+    } else if(pm > 35 || voc > 150){
+      tier = 'CAUTION';
+      reason = fanFault ? 'Fumes rising and airflow looks weak — watch the extractor.' : 'Fume levels trending upward.';
+    } else if(fanFault){
+      tier = 'CAUTION'; reason = 'Air quality is fine, but the extractor isn\u2019t verified to be pulling air.';
+    }
+    setTier(tier, reason);
+
+    manageAutoSession(tier, pm, voc, fan);
+  }
+
+  function setDot(node, val, warnAt, badAt){
+    node.className = 'sensor-status' + (val>badAt ? ' bad' : val>warnAt ? ' warn' : '');
+  }
+
+  function setTier(tier, reason){
+    el.tierValue.textContent = tier;
+    el.tierReason.textContent = reason;
+    el.tierBanner.className = 'tier-banner ' + tier.toLowerCase();
+    const colors = { SAFE:'#3FC463', CAUTION:'#F2B705', UNSAFE:'#EA4B36' };
+    const c = colors[tier];
+    if(tier === 'SAFE'){
+      el.tierIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M4 12l5 5L20 6" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    } else if(tier === 'CAUTION'){
+      el.tierIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l10 18H2L12 3z" stroke="${c}" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4" stroke="${c}" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="${c}"/></svg>`;
+    } else {
+      el.tierIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="${c}" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" stroke="${c}" stroke-width="2" stroke-linecap="round"/></svg>`;
+    }
+    state.lastTier = tier;
+  }
+
+  function updateConnBadges(){
+    const espState = state.connected ? 'online' : 'offline';
+    const arduinoState = state.arduinoOk ? 'online' : 'offline';
+    el.badgeEsp2.className='conn-badge '+espState; el.badgeEsp2.textContent=espState;
+    el.badgeArduino2.className='conn-badge '+arduinoState; el.badgeArduino2.textContent=arduinoState;
+
+    let espSubText, arduinoSubText;
+    if(state.mode === 'demo'){
+      espSubText = 'demo mode'; arduinoSubText = 'demo mode';
+    } else {
+      espSubText = state.connected ? `${state.espIp} · ${state.rssi ?? '—'} dBm · up ${formatUptime(state.uptime)}` : state.espIp ? `${state.espIp} · unreachable` : 'not connected';
+      arduinoSubText = state.arduinoOk ? 'serial heartbeat OK' : state.connected ? 'no serial data' : 'waiting for link…';
+    }
+    el.espSub2.textContent = espSubText;
+    el.arduinoSub2.textContent = arduinoSubText;
+
+    el.sessionDot.className = 'dot ' + (state.connected ? 'on' : 'off');
+    el.sessionPillText.textContent = state.session.active ? 'Logging' : (state.connected ? 'Online' : 'Offline');
+  }
+
+  function formatUptime(sec){ sec=Number(sec)||0; return `${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m`; }
+
+  /* ============ HISTORY + SPARKLINES + CHART ============ */
+  function pushHistory(pm, voc, temp, fan){
+    const h = state.history;
+    h.pm.push(pm); h.voc.push(voc); h.temp.push(temp); h.fan.push(fan); h.t.push(Date.now());
+    for(const k of ['pm','voc','temp','fan','t']){ if(h[k].length > state.maxPoints) h[k].shift(); }
+    drawSpark(el.sparkPM, h.pm, '#C9834A'); drawSpark(el.sparkVOC, h.voc, '#F2B705');
+    drawSpark(el.sparkTEMP, h.temp, '#9AABAD'); drawSpark(el.sparkFAN, h.fan, '#3FC463');
+    drawMainChart();
+  }
+
+  function fitCanvas(canvas){
+    const ratio = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    if(rect.width === 0) return null;
+    canvas.width = rect.width*ratio; canvas.height = rect.height*ratio;
+    const ctx = canvas.getContext('2d'); ctx.setTransform(ratio,0,0,ratio,0,0);
+    return { ctx, w: rect.width, h: rect.height };
+  }
+
+  function drawSpark(canvas, data, color){
+    const fit = fitCanvas(canvas); if(!fit || data.length < 2) return;
+    const { ctx, w, h } = fit; ctx.clearRect(0,0,w,h);
+    const min = Math.min(...data), max = Math.max(...data), range = (max-min)||1;
+    ctx.beginPath();
+    data.forEach((v,i)=>{ const x=(i/(data.length-1))*w; const y=h-((v-min)/range)*h*0.85-h*0.075; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+    ctx.strokeStyle = color; ctx.lineWidth = 1.6; ctx.stroke();
+  }
+
+  function drawMainChart(){
+    const fit = fitCanvas(el.mainChart); if(!fit) return;
+    const { ctx, w, h } = fit; const h1 = state.history;
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
+    for(let i=1;i<4;i++){ const y=(h/4)*i; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+    if(h1.pm.length < 2) return;
+    plotLine(ctx, h1.pm, w, h, '#C9834A', 0, 120);
+    plotLine(ctx, h1.voc, w, h, '#F2B705', 0, 400);
+  }
+  function plotLine(ctx, data, w, h, color, min, max){
+    ctx.beginPath();
+    data.forEach((v,i)=>{
+      const xx=(i/(data.length-1))*w; const clamped=Math.max(min,Math.min(max,v));
+      const y=h-((clamped-min)/(max-min))*h*0.9-h*0.05; i===0?ctx.moveTo(xx,y):ctx.lineTo(xx,y);
+    });
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  window.addEventListener('resize', () => {
+    drawMainChart();
+    drawSpark(el.sparkPM, state.history.pm, '#C9834A'); drawSpark(el.sparkVOC, state.history.voc, '#F2B705');
+    drawSpark(el.sparkTEMP, state.history.temp, '#9AABAD'); drawSpark(el.sparkFAN, state.history.fan, '#3FC463');
+  });
+
+  /* ============ AUTOMATIC SESSION LOGGING ============ */
+  let lastLoggedTier = null;
+  let wasConnected = false;
+
+  function manageAutoSession(tier, pm, voc, fan){
+    const s = state.session;
+
+    // start automatically the moment the device comes online
+    if(state.connected && !s.active){
+      s.active = true; s.startTime = Date.now(); s.samples = [];
+      s.twaSum = 0; s.twaN = 0; s.cautionCount = 0; s.unsafeCount = 0;
+      lastLoggedTier = null;
+      el.logBody.innerHTML=''; el.logEmpty.style.display='none';
+    }
+    // pause (but keep data) if the device drops offline
+    if(!state.connected){
+      s.active = false;
+      el.sessionPillText.textContent = 'Offline';
+      return;
+    }
+
+    s.twaSum += pm; s.twaN += 1;
+    if(tier==='CAUTION') s.cautionCount++;
+    if(tier==='UNSAFE') s.unsafeCount++;
+    s.samples.push({ t: Date.now(), tier, pm, voc, fan });
+
+    el.sumDuration.textContent = formatDuration(Date.now()-s.startTime);
+    el.sumTWA.textContent = (s.twaSum/s.twaN).toFixed(1);
+    el.sumCaution.textContent = s.cautionCount;
+    el.sumUnsafe.textContent = s.unsafeCount;
+    el.btnExport.disabled = s.samples.length === 0;
+    el.sessionPillText.textContent = 'Logging';
+
+    if(tier !== lastLoggedTier){
+      addLogRow(tier, pm, voc, fan);
+      lastLoggedTier = tier;
+    }
+  }
+
+  function addLogRow(tier, pm, voc, fan){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${new Date().toLocaleTimeString()}</td><td><span class="tier-chip ${tier}">${tier}</span></td>
+      <td>${pm.toFixed(1)}</td>`;
+    el.logBody.prepend(tr);
+  }
+
+  function formatDuration(ms){
+    const s = Math.floor(ms/1000);
+    return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  }
+
+  el.btnExport.addEventListener('click', () => {
+    const s = state.session;
+    if(!s.samples.length) return;
+    let csv = 'timestamp,tier,pm25,voc,fan_rpm\n';
+    s.samples.forEach(row=>{ csv += `${new Date(row.t).toISOString()},${row.tier},${row.pm.toFixed(1)},${row.voc.toFixed(0)},${row.fan.toFixed(0)}\n`; });
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `myfumetrix-session-${Date.now()}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+
+  /* ============ INIT ============ */
+  setMode('demo');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="csrf-token" content="{{ csrf }}">
+<meta name="user-role" content="{{ current_user.role }}">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyFumetrix — Air Quality Guard</title><link rel="icon" type="image/x-icon" href="/static/fumetrix-favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="/static/theme.js"></script><link rel="stylesheet" href="/static/style.css">
+<script defer src="/static/app.js"></script>
+</head><body><div class="wrap">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 20c0-5 3-6 3-10a3 3 0 1 1 6 0c0 4 3 5 3 10" stroke="#9AABAD" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="10" r="1.4" fill="#C9834A"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">MyFumetrix</div>
+        <div class="brand-sub">Workstation Air Quality Guard</div>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="status-chip"><span class="dot" id="sessionDot"></span><span id="sessionPillText">Device offline</span></div>
+      <button type="button" class="theme-toggle" data-theme-toggle hidden>Light mode</button>
+      <button class="icon-btn" id="btnSettings" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="#ECF1F1" stroke-width="1.7"/><path d="M19.4 13.5c.04-.33.06-.66.06-1s-.02-.67-.06-1l2.02-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.38.96c-.5-.38-1.04-.7-1.63-.94l-.36-2.53a.5.5 0 0 0-.5-.43h-3.84a.5.5 0 0 0-.5.43l-.36 2.53c-.59.24-1.13.56-1.63.94l-2.38-.96a.5.5 0 0 0-.6.22L2.46 9.28a.5.5 0 0 0 .12.64L4.6 11.5c-.04.33-.06.66-.06 1s.02.67.06 1l-2.02 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.31.6.22l2.38-.96c.5.38 1.04.7 1.63.94l.36 2.53c.05.25.26.43.5.43h3.84c.24 0 .45-.18.5-.43l.36-2.53c.59-.24 1.13-.56 1.63-.94l2.38.96c.21.09.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64L19.4 13.5z" stroke="#ECF1F1" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+
+<div class="account-bar"><span>{{ current_user.username }} · {{ current_user.role }}</span><a href="/account">My account</a>{% if current_user.role == 'admin' %}<a href="/admin">Admin</a>{% endif %}<form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Sign out</button></form></div>
+<section class="panel mode-panel" aria-labelledby="modeHeading">
+  <div class="mode-top"><div><h2 id="modeHeading">Operating mode</h2><p class="hint">Select SLEEP to pause live readings. Wake Arduino returns the device to AUTO.</p></div><span class="mode-confirmed" id="confirmedMode">Checking device…</span></div>
+  <fieldset class="mode-picker" id="modePicker" aria-describedby="modeHelp commandResult">
+    <legend class="sr-only">Choose operating mode</legend>
+    <label class="mode-option"><input type="radio" name="operatingMode" id="modeAuto" value="AUTO" disabled><span class="mode-card"><span class="mode-name">AUTO</span><span class="mode-detail" id="autoModeDetail">Monitor sensors</span></span></label>
+    <label class="mode-option"><input type="radio" name="operatingMode" id="modeMaintenance" value="MAINTENANCE" disabled><span class="mode-card"><span class="mode-name">MAINTENANCE</span><span class="mode-detail">Test sensors & outputs</span></span></label>
+    <label class="mode-option"><input type="radio" name="operatingMode" id="modeSleep" value="SLEEP" disabled><span class="mode-card"><span class="mode-name">SLEEP</span><span class="mode-detail">Put Arduino to sleep</span></span></label>
+  </fieldset>
+  <p class="mode-help" id="modeHelp">AUTO runs the fan from PM2.5, VOC, and NOx readings using the limits saved in Maintenance. MAINTENANCE enables manual tests and pauses scheduled sensor logging.</p>
+  <p class="hint">Last observed sleep/wake change: <time id="sleepWakeChangedAt">—</time></p>
+  <div class="mode-feedback">
+    <p id="commandResult" role="status" aria-live="polite">Connecting to device…</p>
+    <div class="actions">
+      <button type="button" id="wakeArduino" class="primary" disabled>Wake Arduino</button>
+      <button type="button" id="showSleepHistory" class="ghost">Sleep records →</button>
+    </div>
+  </div>
+</section>
+<nav class="page-nav" aria-label="Dashboard pages">
+<button data-view="overview" aria-current="page">Dashboard</button><button data-view="history">History</button>
+</nav>
+<div class="tier-banner" id="tierBanner"><div class="tier-left"><div class="tier-icon" aria-hidden="true">—</div><div><div class="tier-value" id="deviceTitle">Awaiting device</div><div class="tier-reason" id="deviceMessage">Waiting for the ESP.</div></div></div><div class="tier-right"><div class="tier-stat"><div class="n" id="deviceState">—</div><div class="l">Arduino state · test</div></div><div class="tier-stat"><div class="n" id="serverState">Checking</div><div class="l">Website server</div></div></div></div>
+<section class="view" id="overview">
+<section class="panel" aria-labelledby="buzzerHeading">
+  <div class="panel-head"><h2 class="panel-title" id="buzzerHeading">Device buzzer</h2></div>
+  <div class="actions">
+    <label for="buzzerSong">Song</label>
+    <select id="buzzerSong">
+      <option value="birthday">Happy Birthday</option>
+      <option value="jingle">Jingle Bells</option>
+      <option value="twinkle">Twinkle, Twinkle, Little Star</option>
+      <option value="ode">Ode to Joy</option>
+    </select>
+    <button type="button" id="buzzerPlay" disabled>Play</button>
+    <button type="button" id="buzzerStop" disabled>Stop</button>
+    <button type="button" id="preparePowerOff" disabled>Prepare power off</button>
+  </div>
+  <p class="hint">Prepare power off plays the shutdown chime and puts the Arduino to sleep. Wait for SLEEP before switching off power.</p>
+  <p class="hint" id="buzzerFeedback" role="status"></p>
+</section>
+<div class="layout"><div>
+<div class="panel"><div class="panel-head"><div class="panel-title">Live sensors</div><span class="panel-sub" id="sampleStatus">Waiting for ESP-01S</span></div><div class="sensor-grid"><div class="sensor-card"><div class="tag"><span>PM2.5</span><span class="sensor-status"></span></div><div class="val" id="valPM">—<span class="unit">µg/m³</span></div><p class="hint" id="pmStatus">PMS7003 · waiting</p><p class="hint" id="pmDetails">PM1.0: — · PM10: — µg/m³</p></div>
+<div class="sensor-card"><div class="tag"><span>VOC index</span><span class="sensor-status"></span></div><div class="val" id="valVOC">—<span class="unit">idx</span></div><p class="hint" id="vocStatus">SGP41 · waiting</p><canvas class="spark" aria-label="VOC history is available below"></canvas></div>
+<div class="sensor-card"><div class="tag"><span>NOx index</span><span class="sensor-status"></span></div><div class="val" id="valNOX">—<span class="unit">idx</span></div><p class="hint" id="noxStatus">SGP41 · waiting</p><canvas class="spark" aria-label="NOx history is available below"></canvas></div>
+<div class="sensor-card"><div class="tag"><span>Temperature</span><span class="sensor-status"></span></div><div class="val" id="valTEMP">—<span class="unit">°C</span></div><p class="hint">SHT40</p><canvas class="spark" aria-label="No current Temperature readings"></canvas></div>
+<div class="sensor-card"><div class="tag"><span>Humidity</span><span class="sensor-status"></span></div><div class="val" id="valHUM">—<span class="unit">% RH</span></div><p class="hint">SHT40</p><canvas class="spark" aria-label="No current Humidity readings"></canvas></div>
+<div class="sensor-card"><div class="tag"><span>Fan speed</span><span class="sensor-status"></span></div><div class="val" id="valFAN">—<span class="unit">RPM</span></div><p class="hint">Tachometer · D5</p><canvas class="spark" aria-label="No current Fan speed readings"></canvas></div>
+</div></div>
+<section class="panel" id="recommendationPanel" aria-labelledby="recommendationHeading">
+  <h2 class="panel-title" id="recommendationHeading">Recommendations</h2>
+  <p class="hint" id="recommendationStatus" role="status">Waiting for live readings.</p>
+  <ul id="recommendationList" hidden></ul>
+</section>
+<div class="panel"><div class="panel-head"><div class="panel-title">Recorded sensor trend</div><div class="chart-legend"><label for="chartSensor">Sensor </label><select id="chartSensor"><option value="temperature">Temperature °C</option><option value="humidity">Humidity % RH</option><option value="pm1">PM1.0 µg/m³</option><option value="pm25">PM2.5 µg/m³</option><option value="pm10">PM10 µg/m³</option><option value="voc_index">VOC index</option><option value="nox_index">NOx index</option></select></div></div><canvas id="mainChart" aria-label="Recorded PM2.5 history"></canvas><p class="chart-caption" id="chartStatus">Loading database history…</p></div>
+<div class="panel" id="sensorCheckPanel" hidden>
+<div class="panel-head"><div class="panel-title">Maintenance · sensor check</div><button id="checkSensors" disabled>Read current sensors</button></div>
+<p class="hint">Press to request the latest readings from the ESP. This table stays unchanged until your next check. Sensors continue sampling to preserve gas conditioning.</p>
+<p id="checkStatus" role="status">No check requested.</p>
+<div class="table-wrap"><table class="log-table"><thead><tr><th>Device</th><th>Reading</th><th>Status</th></tr></thead><tbody id="checkReadings"></tbody></table></div>
+</div>
+<section class="panel" id="thresholdPanel" hidden>
+<div class="panel-head"><h2 class="panel-title">OLED thresholds</h2></div>
+<p class="hint">A reading inside your project limits shows NORMAL. A reading outside them shows NOT NORMAL. These are project alerts; PM2.5 is checked against the current reading.</p>
+<form id="thresholdForm">
+<fieldset id="thresholdInputs" disabled>
+<legend>Limits</legend>
+{% for key, label, minimum, maximum, suggested in threshold_fields %}
+<label for="threshold-{{ key }}">{{ label }}</label>
+<input id="threshold-{{ key }}" name="{{ key }}" type="number" min="{{ minimum }}" max="{{ maximum }}" step="{{ '0.1' if key.startswith('temp_') else '1' }}" data-suggested="{{ suggested }}" required>
+{% endfor %}
+</fieldset>
+<div class="actions"><button type="button" id="thresholdPreset" disabled>Use suggested values</button><button type="submit" id="thresholdSave" disabled>Save to OLED</button></div>
+</form>
+<p id="thresholdFeedback" role="status"></p>
+<p id="thresholdSync" class="hint"></p>
+</section>
+<div class="panel" id="maintenancePanel"><div class="panel-head"><div class="panel-title">Maintenance · output tests</div></div><div class="verify-inline"><div class="verify-metric"><div class="l">Commanded speed</div><div class="v" id="fanDuty">—</div></div><div class="verify-metric"><div class="l">Measured speed</div><div class="v" id="fanRpm">—</div></div><div class="verify-metric"><div class="l">Relay</div><div class="v" id="fanRelay">Unknown</div></div></div><div class="actions"><button id="fanOnButton" disabled>Fan ON</button><button id="fanOffButton" disabled>Fan OFF</button></div><p class="intro" id="fanResult" role="status"></p><p class="hint" id="fanHelp">D10 relay test. Wake the Arduino first.</p><div class="actions">
+<label for="fanSpeed">PWM duty <output id="fanSpeedValue" for="fanSpeed">100%</output></label>
+<input id="fanSpeed" type="range" min="20" max="100" value="100" disabled>
+<button id="fanApplySpeed" type="button" disabled>Apply speed</button>
+</div><p class="hint" id="fanSpeedStatus">Waiting for PWM status.</p>
+<div class="actions"><button id="oledOn" disabled>OLED ON</button><button id="oledOff" disabled>OLED OFF</button></div>
+<p class="hint">OLED: <span id="oledReported">Unknown</span>. Confirm the screen changes on the device.</p>
+<div class="actions"><button type="button" id="buzzerTest" disabled>Test buzzer</button></div></div>
+</div><div>
+<section class="panel" id="outputStatusPanel" aria-labelledby="outputStatusHeading">
+  <div class="panel-head"><h2 class="panel-title" id="outputStatusHeading">Output status</h2></div>
+  <div class="status-grid">
+    <div>Fan relay<strong id="dashboardFanState">Unknown</strong></div>
+    <div>OLED<strong id="dashboardOledState">Unknown</strong></div>
+    <div>Buzzer<strong id="dashboardBuzzerState">Unavailable</strong></div>
+  </div>
+</section>
+<div class="panel" id="systemStatusPanel" hidden><div class="panel-head"><div class="panel-title">System status</div></div><div class="status-grid"><div>Arduino<strong id="arduinoState">Unknown</strong></div><div>ESP-01S<strong id="espState">Not linked</strong></div><div>PMS7003<strong id="pmsSystem">Unknown</strong></div><div>SGP41<strong id="sgpSystem">Unknown</strong></div><div>SHT40<strong id="shtSystem">Unknown</strong></div><div>Buzzer<strong id="buzzerState">Waiting for device</strong></div><div>OLED<strong id="oledSystem">Unknown</strong></div></div><p class="hint">Last observed state change: <span id="changedAt">—</span></p></div>
+<div class="panel"><div class="panel-head"><div class="panel-title">Stored sensor logs</div></div><p class="hint" id="sdSyncStatus">Waiting for SD status.</p>{% if current_user.role == 'admin' %}<div class="actions"><button id="resetSdLog" type="button" disabled>Reset SD Log</button></div><p class="hint" id="resetSdStatus" role="status"></p>{% endif %}<p class="hint">History shows elapsed time for SD readings and when each row reached the website.</p><div class="exposure-summary"><div class="item"><div class="n" id="recordCount">—</div><div class="l">Database readings</div></div><div class="item"><div class="n">3 min</div><div class="l">Active log interval</div></div></div><div class="log-scroll"><table class="log-table"><thead><tr><th>Saved to website</th><th>Temp °C</th></tr></thead><tbody id="recentBody"></tbody></table><p class="log-empty" id="recentEmpty">No stored measurements yet.</p></div><button class="ghost" id="openHistory">View history →</button></div>
+<div class="panel"><div class="panel-title">Automatic extraction</div><p class="intro" id="extractionStatus">Waiting for device.</p><div id="autoFanControls" hidden>
+  <div class="actions">
+    <button type="button" id="autoFanOn" disabled>Fan ON</button>
+    <button type="button" id="autoFanOff" disabled>Fan OFF</button>
+    <button type="button" id="autoFanResume" disabled>Resume automatic</button>
+  </div>
+  <p class="hint">Fan ON keeps extraction running at a minimum of 40% PWM. PM2.5, VOC, and NOx can raise the speed. Fan OFF pauses extraction. Either override ends when you resume automatic control or leave AUTO.</p>
+  <p class="hint" id="autoFanFeedback" role="status"></p>
+</div></div>
+</div></div></section>
+<section class="view" id="history" hidden><div class="panel"><div class="panel-head"><div class="panel-title">Database history</div><div><a class="export-link" id="export" href="/api/export">Export CSV ↓</a> <a class="export-link" id="exportPdf" href="/api/export/pdf">Export PDF ↓</a></div> {% if current_user.role == 'admin' %}<button id="clearHistory" type="button">Delete history</button>{% endif %}</div><p class="intro">Dates are in Philippine time. For SD readings, elapsed time starts at the first saved reading of each detected run. Date filters use the website save date.</p><form class="filters" id="filters"><label>Records<select id="kind"><option value="readings">Sensor readings</option><option value="sleep_sessions">Sleep sessions</option></select></label><label>From<input type="date" id="start"></label><label>To<input type="date" id="end"></label><button type="submit" class="primary">Apply filters</button></form><p class="hint" id="clearHistoryStatus" role="status"></p>
+<p class="hint" id="historyStatus" role="status">Loading…</p><div class="table-wrap"><table class="log-table"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div><div class="actions">
+  <button id="historyPrev" type="button" disabled>← Previous</button>
+  <span id="historyPage" aria-live="polite"></span>
+  <button id="historyNext" type="button" disabled>Next →</button>
+</div>
+<p class="hint">CSV includes the latest 1,000 matching records. CSV timestamps are UTC. Interrupted sleep records have no duration; gaps are not invented. No simulated records are saved.</p></div></section>
+<footer>MyFumetrix · CpE-414 Embedded Systems<br><span id="databaseState">Cloudflare D1: checking</span><br><span id="clock"></span></footer>
+</div>
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1"><div class="modal-head"><div class="modal-title" id="settingsTitle">Settings & connections</div><button class="modal-close" id="modalClose" aria-label="Close settings">×</button></div><div class="modal-section"><div class="modal-section-title">Data source</div><p class="intro">Website backend on JD’s laptop polls the ESP over your local Wi-Fi. SHT40, SGP41, PMS7003, fan control, sleep and wake are linked in this test. VOC and NOx are relative indices, not ppm measurements.</p><p class="hint">Simulation is disabled. Website availability does not mean the sensors are online.</p></div><div class="modal-section"><div class="modal-section-title">Connection status</div><div class="conn-row"><div class="conn-name">Website backend</div><span class="conn-badge offline" id="backendBadge">Checking</span></div><div class="conn-row"><div class="conn-name">ESP-01S gateway</div><span class="conn-badge offline" id="espBadge">Not linked</span></div><div class="conn-row"><div class="conn-name">Arduino Pro Mini</div><span class="conn-badge offline" id="arduinoBadge">Unknown</span></div></div><div class="modal-section"><div class="modal-section-title">Sensor suite</div><p class="intro">PMS7003: PM2.5<br>SGP41: VOC and NOx indices<br>SHT40: temperature and humidity</p><p class="hint">Set the limits in Maintenance. Recommendations use current readings and the saved limits.</p></div><div class="modal-section"><div class="modal-section-title">Wi-Fi setup</div><p class="intro">AP/STA setup is already on the ESP. Use its local /wifi page to change credentials; this website does not change Wi-Fi settings.</p></div></div></div>
+</body></html>

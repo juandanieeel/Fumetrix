@@ -1,0 +1,9 @@
+{% extends 'auth_base.html' %}
+{% set title = 'Approval status' %}
+{% block content %}
+<section class="panel auth-card">
+  <h1>Waiting for admin approval</h1>
+  <p class="intro">Your account <strong>{{ current_user.username }}</strong> needs approval to access the Fumetrix dashboard, sensor history and device controls.</p>
+  <p class="hint">Contact your Fumetrix administrator to request access. Sign in again after they approve your account.</p>
+</section>
+{% endblock %}

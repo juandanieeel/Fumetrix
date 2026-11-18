@@ -1,0 +1,8 @@
+#pragma once
+
+// Set an ESP setup Wi-Fi password of 8 to 63 characters.
+constexpr char AP_SETUP_PASSWORD[] = "replace-with-your-setup-password";
+
+// Use a fresh 64-character lowercase hexadecimal key.
+// Save the same key in Fumetrix_Website/data/sd-reset-key.txt to enable SD reset.
+constexpr char SD_RESET_KEY[] = "replace-with-a-64-character-lowercase-hex-key";

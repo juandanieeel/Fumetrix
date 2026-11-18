@@ -1,0 +1,5 @@
+Fan test update: 27 existing website tests passed; 5 new fan tests passed after correcting the viewer test setup.
+JavaScript syntax passed. AVR sleep function verified unchanged; relay-OFF added before calling it.
+Fan tests cover acknowledgement, reported state, legacy/asleep rejection, viewer denial, stale data, and a local pending command.
+Firmware not compiled or hardware-tested here. No browser visual validation for this incremental fan control.
+No real user data, passwords, secrets or preview fixtures packaged.

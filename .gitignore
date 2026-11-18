@@ -1,0 +1,10 @@
+/ESP01_UART_Wake/SdResetKey.h
+/Fumetrix_Website/data/
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+*.log
+backup_*/
+build/

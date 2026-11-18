@@ -1,0 +1,66 @@
+{% extends 'auth_base.html' %}{% set title='Administration' %}{% block content %}
+<p class="eyebrow">ADMINISTRATION</p><h1>People & system</h1><p class="intro">Manage access to Fumetrix and review recent account activity.</p>
+<div class="admin-summary"><section class="panel"><h2>{{ users|length }} accounts</h2><p>Admin: manage people and controls.<br>Operator: device controls.<br>Viewer: dashboard and history.</p></section><section class="panel"><h2>{{ reading_count }} readings</h2><p>Local SQLite: {{ database_name }}</p></section><section class="panel"><h2>{{ 'ESP connected' if device.get('connected') else 'ESP offline' }}</h2><p>Arduino: {{ device.get('state','UNKNOWN') }}<br>Logging interval: 3 minutes.<br>Status at page load; refresh to update.</p></section></div>
+<section class="panel"><h2>Create account</h2><form method="post" class="admin-create"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="create"><label>Username<input name="username" required pattern="[a-z0-9_.\-]{3,32}" minlength="3" maxlength="32" autocomplete="off"></label><label>Initial password<input name="password" type="password" minlength="12" maxlength="128" required autocomplete="new-password"></label><label>Role<select name="role"><option value="viewer">Viewer</option><option value="operator">Operator</option><option value="admin">Admin</option></select></label><button class="primary">Create user</button></form><p class="hint">Use a unique password of at least 12 characters. Share it privately; users can change it in My account.</p></section>
+<section class="panel">
+  <h2>Manage users</h2>
+  <p class="hint">To grant device access, choose Approved and save. Choose Viewer for read-only access or Operator for device controls. Access changes and password resets sign the user out.</p>
+  <div class="user-list">
+    {% for user in users %}
+    <article class="user-row">
+      <div>
+        <h3>{{ user.username }}</h3>
+        <p>{{ 'Disabled' if not user.active else 'Approved' if user.approved else 'Pending approval' }} · {{ user.role }}</p>
+      </div>
+      <form method="post" class="user-controls">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="action" value="update">
+        <input type="hidden" name="id" value="{{ user.id }}">
+        <label>Role<select name="role">
+          {% for role in ['viewer','operator','admin'] %}
+          <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role|capitalize }}</option>
+          {% endfor %}
+        </select></label>
+        <label>Device access<select name="approved">
+          <option value="0" {% if not user.approved %}selected{% endif %}>Pending / blocked</option>
+          <option value="1" {% if user.approved %}selected{% endif %}>Approved</option>
+        </select></label>
+        <label>Account status<select name="active">
+          <option value="1" {% if user.active %}selected{% endif %}>Active</option>
+          <option value="0" {% if not user.active %}selected{% endif %}>Disabled</option>
+        </select></label>
+        <button>Save access</button>
+      </form>
+      <div>
+        <details>
+          <summary>Reset password</summary>
+          <form method="post" class="auth-form">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="action" value="reset">
+            <input type="hidden" name="id" value="{{ user.id }}">
+            <label>New password for {{ user.username }}
+              <input name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required>
+            </label>
+            <button>Reset password</button>
+          </form>
+        </details>
+        {% if user.id != current_user.id %}
+        <details>
+          <summary>Remove account</summary>
+          <form method="post" class="auth-form">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" value="{{ user.id }}">
+            <label>Type {{ user.username }} to confirm
+              <input name="confirm_delete" autocomplete="off" maxlength="32" required>
+            </label>
+            <button>Remove account</button>
+          </form>
+        </details>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+<section class="panel"><h2>Recent activity</h2><p class="hint">Latest 100 events. Times are UTC. A command request records delivery status, not proof of a physical state change.</p><div class="log-scroll"><table class="log-table"><thead><tr><th>Time (UTC)</th><th>User</th><th>Action</th><th>Target / result</th></tr></thead><tbody>{% for event in events %}<tr><td>{{ event.occurred_at }}</td><td>{{ event.actor }}</td><td>{{ event.action }}</td><td>{{ event.target }}</td></tr>{% endfor %}</tbody></table></div></section>{% endblock %}
